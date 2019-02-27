@@ -8,20 +8,26 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class readJsonFile {
-    public static Object newObject(){
+    //read json file
+    public static Object newObject() {
+        //parsing the json file into an Object
         JSONParser parser = new JSONParser();
-        Object obj=null;
-        try
-        {
-             obj=parser.parse(new FileReader("D:\\springbootProjects\\cspprojectUpdated\\src\\main\\resources\\static\\students.json"));
-    }
-        catch (
-                FileNotFoundException e){e.printStackTrace();}
-        catch (
-                IOException e){e.printStackTrace();}
-        catch (
-                ParseException e){e.printStackTrace();}
-        catch (Exception e){e.printStackTrace();}
+        Object obj = null;
+        try {
+            obj = parser.parse(new FileReader("D:\\springbootProjects\\cspprojectUpdated\\src\\main\\resources\\static\\students.json"));
+        } catch (//throw different exceptions if error occur
+                FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (
+                IOException e) {
+            e.printStackTrace();
+        } catch (
+                ParseException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        //return the object
         return obj;
-}
+    }
 }

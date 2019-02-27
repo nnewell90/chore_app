@@ -2,7 +2,7 @@ package edu.missouriwestern.csmp.gis.csp.edu.missouriwestern.csmp.gis.csp.studen
 
 
 import org.json.simple.JSONArray;
-
+//create an object for student
 public class Student {
     private String id;
     private String name;
@@ -22,16 +22,10 @@ public class Student {
         this.email = email;
         this.schdule = schdule;
     }
-    public Student(String id, String name, String username, String email) {
-        this.id = id;
-        this.name = name;
-        this.username = username;
-        this.email = email;
-    }
 
     public Student() {
     }
-
+    //getters and setters
     public String getId() {
         return id;
     }
