@@ -14,7 +14,7 @@ public class readJsonFile {
         JSONParser parser = new JSONParser();
         Object obj = null;
         try {
-            obj = parser.parse(new FileReader("D:\\springbootProjects\\cspprojectUpdated\\src\\main\\resources\\static\\students.json"));
+            obj = parser.parse(new FileReader("src\\main\\resources\\static\\students.json"));
         } catch (//throw different exceptions if error occur
                 FileNotFoundException e) {
             e.printStackTrace();

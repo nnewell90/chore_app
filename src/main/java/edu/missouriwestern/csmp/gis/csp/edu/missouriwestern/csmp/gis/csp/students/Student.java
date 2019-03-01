@@ -2,26 +2,20 @@ package edu.missouriwestern.csmp.gis.csp.edu.missouriwestern.csmp.gis.csp.studen
 
 
 import org.json.simple.JSONArray;
+
 //create an object for student
-public class Student {
+public class Student extends JSONArray {
     private String id;
     private String name;
     private String username;
     private String email;
-    private JSONArray schdule;
+    private JSONArray schedule;
 
-    @Override
-    public String toString() {
-        return "schdule=" + schdule;
+    public Student(String id,JSONArray schedule) {
+        this.schedule = schedule;
+        this.id=id;
     }
 
-    public Student(String id, String name, String username, String email, JSONArray schdule) {
-        this.id = id;
-        this.name = name;
-        this.username = username;
-        this.email = email;
-        this.schdule = schdule;
-    }
 
     public Student() {
     }
@@ -58,11 +52,16 @@ public class Student {
         this.email = email;
     }
 
-    public JSONArray getSchdule() {
-        return schdule;
+    public JSONArray getSchedule() {
+        return schedule;
     }
 
-    public void setSchdule(JSONArray schdule) {
-        this.schdule = schdule;
+    public void setSchedule(JSONArray schedule) {
+        this.schedule = schedule;
     }
+
+//    @Override
+//    public Object[] toArray(IntFunction generator) {
+//        return new Object[0];
+//    }
 }
