@@ -3,7 +3,7 @@ package edu.missouriwestern.csmp.gis.csp.course_prerequisites;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-
+import edu.missouriwestern.csmp.gis.csp.courses.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
