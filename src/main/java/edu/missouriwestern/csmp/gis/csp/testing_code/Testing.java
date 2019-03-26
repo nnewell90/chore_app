@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.stream.IntStream;
 
-import static edu.missouriwestern.csmp.gis.csp.solver.Solver_wei.getString;
-
 @RestController
 @RequestMapping(path = "/testing")
 public class Testing {
@@ -60,6 +58,11 @@ public class Testing {
                 model.allDifferent(diag1),
                 model.allDifferent(diag2)
         );
-        return getString(model, vars);
+        Solver solver = model.getSolver();
+        solver.showStatistics();
+        solver.setSearch(Search.domOverWDegSearch(vars));
+        Solution solution = solver.findSolution();
+        solutionToString=solution.toString();
+        return solutionToString;
     }
 }

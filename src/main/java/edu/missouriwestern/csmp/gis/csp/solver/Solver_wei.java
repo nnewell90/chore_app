@@ -22,7 +22,7 @@ public class Solver_wei {
         return "it works on solving";
     }
     @GetMapping(path = "/solver")
-    public String EightQueen(){
+    public String courses(){
         String solutionToString="";
         int n = 8;
         int size= jdbcTemplate.queryForObject("select count(*) from gis.precourses", Integer.class);;
@@ -44,11 +44,6 @@ public class Solver_wei {
 //                    model.arithm(cscList[i], ">=", setNum)
 //                    );
 //        }
-        return getString(model, cscList);
-    }
-
-    public static String getString(Model model, IntVar[] cscList) {
-        String solutionToString;
         Solver mysolver = model.getSolver();
         mysolver.showStatistics();
         mysolver.setSearch(Search.domOverWDegSearch(cscList));
