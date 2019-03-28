@@ -37,7 +37,9 @@ public class CourseRepository {
             String title = jdbcTemplate.queryForObject("select Title from gis.courses limit " + i + ",1", String.class);
             //get the department
             String department = jdbcTemplate.queryForObject("select Department from gis.courses limit " + i + ",1", String.class);
-            Course newCourse = new Course(courseId, name, credit, title, department);
+            //get the semester number
+            int semesterNum=jdbcTemplate.queryForObject("select SemesterNum from gis.courses limit " + i + ",1", Integer.class);
+            Course newCourse = new Course(courseId, name, credit, title, department,semesterNum);
             courses.add(newCourse);
 
         }

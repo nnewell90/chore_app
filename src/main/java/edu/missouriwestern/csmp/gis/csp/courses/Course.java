@@ -10,13 +10,15 @@ public class Course {
     private int credits;
     private String title;
     private String department;
+    private int semesterNum;
 
-    public Course(String courseId, String name, int credits, String title, String department) {
+    public Course(String courseId, String name, int credits, String title, String department,int semesterNum) {
         this.courseId = courseId;
         this.name = name;
         this.credits = credits;
         this.title = title;
         this.department = department;
+        this.semesterNum=semesterNum;
     }
 
 
@@ -61,5 +63,13 @@ public class Course {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+    public int getSemesterNum() {
+        return semesterNum;
+    }
+
+    public void setSemesterNum(int semesterNum) {
+        this.semesterNum = semesterNum;
     }
 }
