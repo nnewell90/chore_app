@@ -8,21 +8,29 @@ import edu.missouriwestern.csmp.gis.csp.semester_type.Semester_Type;
 import org.chocosolver.solver.Model;
 import org.chocosolver.solver.Solution;
 import org.chocosolver.solver.Solver;
+import org.chocosolver.solver.constraints.Constraint;
 import org.chocosolver.solver.search.strategy.Search;
 import org.chocosolver.solver.variables.BoolVar;
 import org.chocosolver.solver.variables.IntVar;
+import org.chocosolver.solver.variables.SetVar;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Formatter;
 import java.util.List;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(path = "/solving")
 public class Solver_wei {
+    Model model;
+    IntVar[] courseVars;
+    List<Course> programCourses;
+
     @Autowired
     JdbcTemplate jdbcTemplate;
 
@@ -44,152 +52,144 @@ return "";
     }
 
     @GetMapping(path = "/solver")
-    public List<Course> courses(String courseNam, String semester) {
+    public List<Course> courses(String courseNam, String semestr) {
+        programCourses = courseRepository.getProgramCourses(2);
+//        exampleSolver();
+//        if(true) {
+//            return programCourses;
+//        }
 
-        List<Course> programCourses = courseRepository.getProgramCourses(2);
-        Course emptyCourse = new Course();
-        emptyCourse.setName("____");
-        emptyCourse.setCredits(0);
-        programCourses.add(0, emptyCourse);
+        long startTime = System.nanoTime();
+
+        // Maximum terms over all
+        int maxTerms = 8;
+
+        // Amount of courses to be considered
+
         ////////////
         // MODEL: //
         ////////////
-        List<String> courseNames = programCourses.stream().map(x -> x.getName()).collect(Collectors.toList());
+        // CS-Model
+        int numberOfCourses = programCourses.size();
+        int maxCoursesPerTerm = Math.floorDiv(numberOfCourses , maxTerms);
 
-        // load parameters
-        int maxCoursesPerTerm;
-        int numberOfCourses = courseNames.size();   // warehouses (28 + 1 blank)
-        int maxTerms = 8;       // stores
-        int[] achievableCreditPoints = programCourses.stream().mapToInt(x -> x.getCredits()).toArray();
+        model = new Model("GIS Course Scheduling");
 
-        Model model = new Model("GIS Course Scheduling");
-
-        maxCoursesPerTerm = Math.floorDiv(numberOfCourses , maxTerms);
-        System.out.println(numberOfCourses + " " + maxTerms);
-        System.out.println(maxCoursesPerTerm);
-        // VARIABLES
-        // a course is either scheduled or not
-
-        IntVar[] terms = model.intVarArray("terms", maxTerms * maxCoursesPerTerm, 0, numberOfCourses - 1, false);
-
-        // credit points per term
-        IntVar[][] points = new IntVar[maxTerms][];
-        for (int i = 0; i < maxTerms; i++) {
-            points[i] = model.intVarArray ("points_"+i, maxCoursesPerTerm, 0, 7, true);
+        // Variables: courses with a term number between 0 and max terms
+        courseVars = new IntVar[numberOfCourses];
+        for (int i = 0; i < numberOfCourses; i++) {
+            courseVars[i] = model.intVar(Integer.toString(programCourses.get(i).getCourseId()), 0, maxTerms - 1, false);
         }
 
-        // accumulated points
-        IntVar[] accPoints = new IntVar[maxTerms];
-        for (int i = 0; i < maxTerms; i++) {
-            accPoints[i] = model.intVar("accPoints"+i, 0, 100, false);
+        // Variables: credit points
+        int[] courseCredits = programCourses.stream().mapToInt(x -> x.getCredits()).toArray();
+
+
+        int[] courseNumbers = new int[numberOfCourses];
+
+        for(int x = 0; x < numberOfCourses; x++ ){
+            courseNumbers[x] = x;
         }
-
-
+                //programCourses.stream().mapToInt(x -> x.getCourseId()).toArray();
+        SetVar[] scheduledCourses = model.setVarArray("scheduledCourses", maxTerms, new int[]{}, courseNumbers);
+        IntVar[] credits = model.intVarArray(maxTerms, 3* maxCoursesPerTerm, 5* maxCoursesPerTerm); // consider to make a 0-100 bound and set two constraints >= 15 and <= 21 (more efficient)
 
         //////////////////
         // CONSTRAINTS: //
         //////////////////
 
-        model.allDifferentExcept0(terms).post();
-        for (int j = 0; j < maxTerms; j++) {
-            // a course is scheduled, if it is 'bound' to a store
-            for (int i = 0; i < maxCoursesPerTerm; i++) {
-                model.element( points[j][i], achievableCreditPoints, terms[(j * maxCoursesPerTerm) + i], 0).post(); // Compute credit points for each term
+        setPrerequisiteConstraints();
+
+       // setSemesterConstraints();
+        // Constraints: calculate credits
+        for (int term = 0; term < maxTerms; term++) {
+            // Check which courses are scheduled to which term
+            for (int course = 0; course < numberOfCourses; course++) {
+                model.ifThenElse(
+                        model.arithm(courseVars[course], "=", term),
+                        model.member(course, scheduledCourses[term]),
+                        model.notMember(course, scheduledCourses[term])
+                );
             }
-            model.sum(points[j], "=", accPoints[j]).post();
-            model.sum(points[j], ">=", 3 * maxCoursesPerTerm).post();
-            model.sum(points[j], "<=", 5 * maxCoursesPerTerm).post();
+
+            // Calculate achieved credit points for each term
+            model.sumElements(scheduledCourses[term], courseCredits, credits[term]).post();
         }
 
         //////////////
         // SOLVING: //
         //////////////
-
-        Solver solver = model.getSolver();
+        final Solver solver = model.getSolver();
         solver.showShortStatistics();
+        solver.showStatistics();
+        solver.showContradiction();
         Solution solution = solver.findSolution();
+        printSolution(solution, maxTerms, courseVars);
 
+        long estimatedTime = System.nanoTime() - startTime;
+        long seconds = estimatedTime / 1000000000;
+        System.out.println("Estimated time: " + seconds / 60 + " min");
+        return  programCourses.stream().filter(x -> Arrays.stream(courseVars).map(y -> y.getName()).collect(Collectors.toList()).contains(Integer.toString(x.getCourseId()))).collect(Collectors.toList());
+
+    }
+
+    private void setSemesterConstraints() {
+
+        for (Course course : programCourses ) {
+            for (var courseVar : courseVars) {
+                if(course.getCourseId() == Integer.parseInt(courseVar.getName())){
+                   int courseSemesterTypeId = course.getSemesterTypeId();
+
+                   switch (courseSemesterTypeId) {
+                       case 1:
+                           model.arithm(courseVar.mod(4).intVar(), "=", 0).post();
+                           break;
+                   }
+
+                }
+            }
+        }
+
+    }
+
+    private void setPrerequisiteConstraints() {
+        for (Course course : programCourses ) {
+            for (var courseVar : courseVars) {
+                if(course.getCourseId() == Integer.parseInt(courseVar.getName())){
+                    for (var preRequisite : course.getPrerequisiteSetList()) {
+                        var preRequisiteVar = Arrays.stream(courseVars) .filter(x -> x.getName().equals(preRequisite.getCourseId())).findFirst().orElse(null);
+                        if(preRequisiteVar == null) continue;
+                        model.arithm(courseVar, ">", preRequisiteVar).post();
+                        int courseSemesterTypeId = course.getSemesterTypeId();
+                    }
+                    continue;
+                }
+            }
+        }
+    }
+
+    private void printSolution(Solution solution, int maxTerms, IntVar[] courseVars) {
         String[] output = new String[maxTerms];
         if (solution != null) {
-            for (int i = 0; i < maxTerms; i++) {
-                int start = i * maxCoursesPerTerm;
-                for (int j = start; j < (start + maxCoursesPerTerm); j++) {
-                    String courseName = courseNames.get(terms[j].getValue());
-                    if (output[i] != null) {
-                        output[i] += courseName + "   ";
-                    } else {
-                        output[i] = courseName + "   ";
-                    }
+            for (IntVar courseVar : courseVars) {
+                int row = solution.getIntVal(courseVar);
+                Course course = programCourses.stream().filter(x -> x.getCourseId() == Integer.parseInt(courseVar.getName())).findAny().orElse(null);
+                String courseName = course.getName();
+                if (output[row] != null) {
+                    output[row] += courseName + "   ";
+                } else {
+                    output[row] = courseName + "   ";
                 }
-                System.out.println((i + 1)+ ". Sem:   " + output[i]);
+            }
+            for (int i = 0; i < maxTerms; i++) {
+                if (output[i] != null) {
+                    System.out.println((i + 1) + ". Sem:   " + output[i]);
+                } else {
+                    System.out.println((i + 1) + ". Sem:   ");
+                }
             }
         } else {
             System.out.println("NO SOLUTION FOUND!");
         }
-
-
-
-//        List<String> courseNames = programCourses.stream().map(x -> x.getName()).collect(Collectors.toList());
-//        int maxCoursePerTerm = 5;
-//        int numberOfCourses = courseNames.size();
-//        int maxTerms = 8;
-//
-//
-//        int[] achievableCreditPointsArray = programCourses.stream().mapToInt(x -> x.getCredits()).toArray();
-//
-//        Model model = new Model("GIS Course Scheduling");
-//
-//        IntVar[] terms = model.intVarArray("Terms", maxTerms * maxCoursePerTerm, 0 , numberOfCourses , false);
-//
-//        IntVar[][] points = new IntVar[maxTerms][];
-//        for (int i = 0; i < maxTerms; i++) {
-//            points[i] = model.intVarArray("points_" + 1, maxCoursePerTerm, 0, 5, true);
-//        }
-//
-//        IntVar[] accumulatedPoints = new IntVar[maxTerms];
-//        for (int i = 0; i < maxTerms; i++) {
-//            accumulatedPoints[i] = model.intVar("accumulatedPoints" +i, 0, 100, false);
-//        }
-//
-//
-//        //CONSTRAINTS
-//        model.allDifferentExcept0(terms).post();
-//
-//        for (int i = 0; i < maxTerms; i++) {
-//            for (int j = 0; j < maxCoursePerTerm; j++) {
-//                model.element(points[i][j], achievableCreditPointsArray, terms[(i * maxCoursePerTerm) + 1], 0).post();
-//
-//            }
-//            model.sum(points[i], "=", accumulatedPoints[i]).post();
-//            model.sum(points[i], ">=", 12).post();
-//            model.sum(points[i], "<=", 18).post();
-//        }
-//
-//        //Solving
-//
-//        Solver solver = model.getSolver();
-//        solver.showShortStatistics();
-//        Solution solution = solver.findSolution();
-//
-//        String[] output = new String[maxTerms];
-//        String returnString = "";
-//        if (solution != null) {
-//            for (int i = 0; i < maxTerms; i++) {
-//                int start = i * maxCoursePerTerm;
-//                for (int j = start; j < maxCoursePerTerm ; j++) {
-//                    String courseName = courseNames.get(terms[j].getValue());
-//                    if (output[i] != null) {
-//                        output[i] += courseName + "   ";
-//                    } else {
-//                        output[i] = courseName + "   ";
-//                    }
-//                }
-//
-//                System.out.println(((i + 1) + " " + output[i]));
-//            }
-//        }else {
-//            System.out.println("No Solution found");
-//        }
-        return programCourses;
     }
 }

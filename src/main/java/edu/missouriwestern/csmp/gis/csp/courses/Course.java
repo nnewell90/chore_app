@@ -9,7 +9,7 @@ import java.util.List;
 
 //create an object for student
 public class Course {
-    private String courseId;
+    private int courseId;
     private String name;
     private int credits;
     private String title;
@@ -17,7 +17,7 @@ public class Course {
     private int SemesterTypeId;
     private List<Prerequisite_set> prerequisiteSetList;
 
-    public Course(String courseId, String name, int credits, String title, String department,int semesterTypeId) {
+    public Course(int courseId, String name, int credits, String title, String department,int semesterTypeId) {
         this.courseId = courseId;
         this.name = name;
         this.credits = credits;
@@ -31,11 +31,11 @@ public class Course {
         this.prerequisiteSetList = new ArrayList<>();
     }
 
-    public String getCourseId() {
+    public int getCourseId() {
         return courseId;
     }
 
-    public void setCourseId(String courseId) {
+    public void setCourseId(int courseId) {
         this.courseId = courseId;
     }
 

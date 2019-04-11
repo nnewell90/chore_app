@@ -14,9 +14,9 @@ public class CourseRepository {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
-    public Course findcourse(String id) {
+    public Course findcourse(int id) {
         //get the course id
-        return getAllCourses().stream().filter(t -> t.getCourseId().equals(id)).findFirst().get();
+        return getAllCourses().stream().filter(t -> t.getCourseId() == id).findFirst().get();
     }
 
     public int size() {
@@ -30,7 +30,7 @@ public class CourseRepository {
 
         for (int i = 0; i < size; i++) {
             //get the course id
-            String courseId = jdbcTemplate.queryForObject("select CourseId from gis.courses limit " + i + ",1", String.class);
+            int courseId = jdbcTemplate.queryForObject("select CourseId from gis.courses limit " + i + ",1", Integer.class);
             //get the course name
             String name = jdbcTemplate.queryForObject("select Name from gis.courses limit " + i + ",1", String.class);
             //get the credit
@@ -49,7 +49,7 @@ public class CourseRepository {
     }
 
     public List<Course> getProgramCourses(int programId) {
-        String coursesSql = "select c.Name as CourseName, c.CourseId, c.Title, c.Credits, c.Department from programs a \n" +
+        String coursesSql = "select c.Name as CourseName, c.CourseId, c.Title, c.Credits, c.Department, c.SemesterTypeId from programs a \n" +
                 "join program_courses b on a.ProgramId = b.ProgramId\n" +
                 "join courses c on c.CourseId = b.CourseId\n" +
                 "where a.ProgramId = ?";
@@ -68,15 +68,15 @@ public class CourseRepository {
             Course course = new Course();
             List<Prerequisite_set> coursePrerequisites = new ArrayList<>();
 
-            course.setCourseId(courseRow.get("CourseId").toString());
+            course.setCourseId((int)courseRow.get("CourseId"));
             course.setName(courseRow.get("CourseName").toString());
             course.setTitle((String)courseRow.get("Title"));
             course.setCredits((int)courseRow.get("Credits"));
             course.setDepartment((String)courseRow.get("Department"));
-
+            course.setSemesterTypeId((int)courseRow.get("SemesterTypeId"));
             for(Map prerequisiteRow: prerequisiteRows) {
                 Prerequisite_set prerequisite_set = new Prerequisite_set();
-                if(course.getCourseId().equals(prerequisiteRow.get("CourseId").toString())) {
+                if(course.getCourseId() == ((int)prerequisiteRow.get("CourseId"))) {
                     prerequisite_set.setCourseId(prerequisiteRow.get("PreCourseId").toString());
                     prerequisite_set.setPrerequisiteSetId(prerequisiteRow.get("PrerequisiteSetId").toString());
                     coursePrerequisites.add(prerequisite_set);
