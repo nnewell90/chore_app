@@ -22,7 +22,7 @@ public class CourseController {
     }
 
     @GetMapping(path = "/{id}")
-    public Course findcourse(@PathVariable String id) {
+    public Course findcourse(@PathVariable int id) {
         return courseRepository.findcourse(id);
     }
 
